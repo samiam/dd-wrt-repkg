@@ -1,0 +1,153 @@
+#!/bin/sh
+# $Id: firewall-cmds,v 1.3 2010/04/20 02:10:43 sam Exp sam $
+# DD-WRT installs rules for vlan0 and vlan1.  But since I'm managing 
+# wireless interface I need to install them myself.  Make sure to have
+# firewall command run from Administration->Commands.
+
+# eth1  Wireless interface
+# vlan0 Four physical ports
+# vlan1 WAN port
+
+# Log with pid
+LOG () {
+    echo $* | logger -s -p 6 -t "[$$]"
+}
+
+# Return last rule number of given chain
+LAST () {
+    chain="$1"
+    last=$(( `iptables -L $chain --numeric | wc -l` - 2 ))
+
+    if [ $last -gt 0 ]; then
+	echo $last
+    else
+	echo 1
+    fi
+}
+
+# Delete all instances of one rule
+DELETE_RULE () {
+    chain="$1"
+    shift
+    rule="$*"
+    ret=0
+
+    while [ $ret -eq 0 ];
+    do
+        # There will be an error the last time; rule doesn't exist
+        iptables -D $chain $rule 2> /dev/null
+	ret="$?"
+    done
+}
+
+# Install rule - delete it first
+INSTALL_RULE () {
+    chain="$1"
+    shift
+    rule="$*"
+    
+    $(DELETE_RULE $chain $rule)
+    iptables -I $chain $(LAST $chain) $rule
+}
+
+LOCK_FILE="/tmp/.firewall.lock"
+
+# Acquire lock before changing firewall
+GET_LOCK () {
+    n=3  # number of attempts
+
+    while [ $n -gt 0 ];
+    do
+         # Small race condition between file test and echo
+         if [ ! -f $LOCK_FILE ]; then
+            echo $$ >> $LOCK_FILE
+            $(LOG Acquired lock file)
+	    return 0
+         else
+            # Quick and dirty algorithm to get random number
+	    secs=$(( ($$ * $n) % 10 ))
+	    n=$(( n-1 ))
+            $(LOG Unable to acquire firewall lock: waiting $secs secs...)
+            sleep $secs
+         fi
+    done
+
+    $(LOG Unable to acquire firewall lock)
+    return 1
+}
+
+# Delete lock
+REMOVE_LOCK () {
+    /bin/rm -f $LOCK_FILE  &&  $(LOG Removed lock file)
+}
+
+# A very bad hack
+# When SPI is turned off from GUI, the default policy is set to ACCEPT
+# Check this before we add our rules, and if SPI is off, don't install our rules
+SPI_OFF () {
+    iptables -L FORWARD | grep -q "policy ACCEPT"
+}
+
+###################################################################
+# 
+#  MAINLINE
+#
+###################################################################
+
+#$(SPI_OFF) && exit 0
+
+$(GET_LOCK) || exit 1
+
+$(LOG Installing firewall rules...)
+
+# 
+# INPUT rules for wireless interface
+#
+
+# Default policy
+iptables -P INPUT DROP
+
+# DHCP allowed in
+INSTALL_RULE INPUT -i eth1 -p udp --dport 67 --sport 68 -j logaccept
+
+# DNS allowed in
+INSTALL_RULE INPUT -i eth1 -p udp --dport 53 -j ACCEPT
+
+# SSH allowed in to manage box
+INSTALL_RULE INPUT -i eth1 -p tcp --dport 22 \
+                   -m state --state NEW -j logaccept
+
+# GUI if needed
+# echo $(( `iptables -L INPUT --numeric | wc -l` - 2 ))
+# iptables -I INPUT  -i eth1 -p tcp -d 192.168.25.1 --dport 80 -m state --state NEW -j logaccept
+
+#
+# FORWARD rules
+#
+
+# Default policy
+iptables -P FORWARD DROP
+
+# No access to SBC router
+#INSTALL_RULE FORWARD -i eth1 -o vlan1 -d 192.168.0.1 -j logdrop
+
+# SSH to LAN
+INSTALL_RULE FORWARD -i eth1 -o br0 -p tcp --dport 22 \
+                     -m state --state NEW -j logaccept
+
+# Print to PRINTER
+INSTALL_RULE FORWARD -i eth1 -o br0 -p tcp --dport 9100 -d 192.168.1.136 \
+                     -m state --state NEW -j logaccept
+
+# SMB to GENTOO
+INSTALL_RULE FORWARD -i eth1 -o br0 -p tcp --dport 445 -d 192.168.1.140 \
+                     -m state --state NEW -j logaccept
+INSTALL_RULE FORWARD -i eth1 -o br0 -p tcp --dport 445 -d 192.168.1.137 \
+                     -m state --state NEW -j logaccept
+
+# Internet
+INSTALL_RULE FORWARD -i eth1 -o vlan1 -m state --state NEW -j logaccept
+
+
+# Cleanup
+$(REMOVE_LOCK)

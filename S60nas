@@ -1,0 +1,44 @@
+#!/bin/sh
+# $Id: S60nas,v 1.1 2009/02/20 00:49:03 sam Exp $
+# Start nas process on eth1
+# http://wiki.openwrt.org/OpenWrtDocs/nas
+
+stop_nas () {
+  killall nas
+  sleep 2
+  killall -9 nas
+}
+
+echo -n "Restarting nas process..."
+stop_nas;
+
+mode="`nvram get wl0_akm`" 
+if [ -z "$mode" -o "$mode" = "disabled" ]; then 
+   echo "No authentication mode... not starting NAS"
+   exit 0
+fi
+
+wep="`nvram get wl0_wep`"
+crypto="`nvram get wl0_crypto`"
+case "$wep" in
+     wep|on|restricted|enabled)  wep=1 ;;
+     *)  echo "Unknown wep mode" ;;
+esac
+
+case "$crypto" in
+     tkip)  crypto=2 ;;
+     aes)   crypto=4 ;;
+     tkip+aes) crypto=6 ;;
+     *)     crypto=0 ;;
+esac
+
+# -m 128 and -w 4 dependent on crypto and wep
+cmd="nas -P /tmp/nas.wl0lan.pid -H 34954 -l eth1 -i eth1 -A -m 128 -w 4"
+key="`nvram get wl0_wpa_psk`"
+ssid="`nvram get wl0_ssid`"
+rekey="`nvram get wl0_wpa_gtk_rekey`"
+new_nas_cmd="$cmd -k $key -s $ssid -g $rekey"
+
+${new_nas_cmd} > /dev/null 2> /dev/null &
+
+echo "done"

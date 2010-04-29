@@ -1,0 +1,12 @@
+I have a Linksys WRT54GS v1.0 that I installed http://www.dd-wrt.com
+
+I'm not using it right now but I wrote some scripts to package my own
+dd-wrt release.  I only did this because I wanted to keep the LAN and
+wireless LAN networks separate and therefore had to manage the box
+myself.
+
+Firmwaremodkit lets you unpack the dd-wrt image.  I then made a couple
+of modifications and would repack the image.  The scripts here do
+that.
+
+They may be of use to someone.

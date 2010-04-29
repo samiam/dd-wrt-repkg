@@ -1,0 +1,32 @@
+#!/bin/sh
+# $Id: S30wireless,v 1.2 2009/12/05 21:50:04 sam Exp $
+echo -n "Setting up wireless interface..."
+
+VINT () {
+    V=$(/sbin/softwarerevision)
+    if [ $V -lt 12533 ]; then
+        VINT=1
+    else
+        VINT=0
+    fi
+}
+
+if [ $VINT -eq 1 ]; then
+
+  # Reduce snmp broadcasts to once an hour
+  brctl sethello br0 3600
+
+  # Configure wireless interface
+  ifconfig eth1 192.168.25.1 netmask 255.255.255.0 broadcast 192.168.25.255
+
+  # Bring up wireless interface
+  # Ignore error - eth1: Argument list too long
+  wlconf eth1 up  2> /dev/null
+
+else
+  # Configure wireless interface
+  ifconfig eth1 $(nvram get eth1_ipaddr) netmask $(nvram get eth1_netmask)
+  ifconfig eth1 up
+fi
+
+echo "done"

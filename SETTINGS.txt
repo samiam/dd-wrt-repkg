@@ -1,0 +1,119 @@
+                   SETTINGS FOR DD-WRT
+               Most settings are defaults.
+
+Setup
+  Basic Setup
+    Router Name: DD-WRT
+    Local IP Address: 192.168.1.1
+    Subnet Mask: 255.255.255.0
+    Gateway: 0.0.0.0
+    Local DNS: 0.0.0.0
+
+    DHCP Server: enabled
+    Start IP: 192.168.1.100
+    Use DNSMasq for DHCP:  yes
+    Use DNSMasq for DNS:   yes
+    DHCP-authoriative:     yes
+
+    NTP client: enabled
+    Time Zone: UTC-05:00
+    Summer Time DST: 2nd Sun Mar - first Sun Nov
+    Server IP/name: 3.us.pool.ntp.org
+
+  Advanced Routing
+    Operating Mode: Gateway
+
+  VLANS
+    VLAN0 port: 1,2,3,4  Assigned to Bridge: LAN
+    VLAN1 port: W
+    All enabled and auto-negotiate
+    Wireless: NONE  (very important)
+
+Wireless
+  Basic Settings
+    Wireless Mode: AP
+    Wireless Network Mode: Mixed
+    Wireless SSID: GET_A_MACINTOSH
+    Wireless Channel: 6-2.437 Ghz
+    SSID broadcast: enable
+    Network configuration: bridged (what's this do?)
+
+  Wireless Security
+    Security Mode: WPA2 Personal Mixed
+    WPA Algorithms: AES
+    WPA Shared Key: *******
+
+Services
+  DHCP server
+    LAN domain: local
+    Static Leases:
+    00:10:E0:03:25:44 gw       192.168.1.114
+    00:02:E3:3B:22:25 xppro    192.168.1.137 
+    00:10:E0:04:BB:10 gentoo   192.168.1.140
+    00:0B:6B:4C:15:16 ferrari  192.168.25.141
+    00:0C:41:95:A4:70 printer  192.168.1.136
+
+  DNSMasq
+    DNSMasq: enable
+    Local DNS: enable
+    Additional DNSMasq Option:
+    interface=eth1
+    dhcp-option=43,01:04:00:00:00:02
+    dhcp-option=eth1,43,01:04:00:00:00:02
+    dhcp-option=eth1,3,192.168.25.1
+    dhcp-range=eth1,192.168.25.100,192.168.25.149,255.255.255.0,1440m
+
+  Secure Shell
+    sshd: enable
+    TCP forw: disable
+    Password login: enable
+
+  System Log
+    Enable
+    Remote server: 192.168.1.137
+
+  Telnet: disable
+  WAN Traffic daemon: enable
+
+Security
+  Firewall
+    SPI firewall: enable
+    Additional filters: none
+    Block WAN req: anonymous WAN requests, filter multicast, filter ident
+    LOG: enable
+    Level: high
+    Dropped: enable
+    Rejected: enable
+    Accepted: disable
+
+  VPN
+    IPSec, PPTP, L2TP passthrough: enable
+
+NAT/QoS
+  Port Forward
+    azureus-hp  61616  Both  192.168.1.137  61616  enabled
+
+Administration
+  Management
+    Remote Access: disable
+    Boot wait: enable
+    Cron: enable
+    Loopback: enable
+    802.1x: enable
+    Reset Button: enable
+    Routing: disable
+    JFFS2 Support: disable
+    Language: english
+    MMC/SD card: disable
+    Frequency: 200MHz
+    Style: orange
+    CIFS automount
+      CIFS: enable
+      share: //192.168.1.137/SharedDocs
+
+  Commands
+    Firewall
+      /etc/init.d/firewall-cmds  (important to set this)
+
+
+$Id: SETTINGS.txt,v 1.3 2010/04/18 16:53:32 sam Exp $

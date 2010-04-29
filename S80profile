@@ -1,0 +1,18 @@
+#!/bin/sh
+# $Id: S80profile,v 1.2 2009/02/20 01:03:21 sam Exp $
+# Add these local mods to /root/.profile, but since /root is on a
+# tmpfs, have to do this each boot.
+
+PROFILE="/tmp/root/.profile"
+
+# Don't install it more than once
+grep -q INSTALLED $PROFILE && exit
+
+cat << EOF >> $PROFILE
+
+# Local changes - INSTALLED
+alias m=less
+alias ls='ls -AF'
+alias iptablesl='iptables --line -nv -L INPUT ; iptables --line -nv -L FORWARD' 
+export PS1='\h[\w]\# '
+EOF
